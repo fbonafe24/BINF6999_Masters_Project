@@ -1,57 +1,40 @@
 # Quality Assessment
-NanoPlot --fastq barcode17.fastq -o nanoplot17_output
-NanoPlot --fastq barcode18.fastq -o nanoplot18_output
-
-# Convert FASTQ t0 FASTA
-bioawk -c fastx '{print ">"$name"\n"$seq}' barcode17.fastq > barcode17.fasta
-bioawk -c fastx '{print ">"$name"\n"$seq}' barcode18.fastq > barcode18.fasta
+NanoPlot --fastq B12_all.fastq -o nanoplot
 
 # Assemble with flye
 flye \
- --nano-raw barcode17.fasta \
- --genome-size 2.4g \
- --out-dir flye_17 \
- --threads 16
-
-flye \
- --nano-raw barcode18.fasta \
- --genome-size 2.4g \
- --out-dir flye_18 \
- --threads 16
+  --nano-raw B12_all.fastq \
+  --genome-size 2.4g \
+  --threads 16 \
+  --out-dir flye_B12
 
 #Assembly Quality Statistics
 quast assembly.fasta -o Quast/
+busco -i assembly.fasta -m genome -l ../PacBio_Flye/BUSCO/busco_downloads/lineages/artiodactyla_odb12 -o BUSCO
 
-# Filter by Read Lengths
-seqkit seq -m 1000 barcode17.fasta > barcode17_1kb.fasta
-seqkit seq -m 1000 barcode18.fasta > barcode18_1kb.fasta
+# -----------------------------------------------
+# Step 7: Removal of haplotigs (purge_dups pipeline)
+# -----------------------------------------------
+minimap2 -x map-pb -t 4 ../assembly.fasta ../data/B12_all.fastq.gz | gzip -c > B12_all.paf.gz
 
-# Summary Statistics
-seqkit stat barcode17_1kb.fasta
-seqkit stat barcode18_1kb.fasta
+pbcstat B12_all.paf.gz.gz
 
-#Adapter trimming
-porechop \
-  -i barcode17.fastq \
-  -o barcode17_trimmed.fasta \
-  --format fasta \
-  --threads 16
+calcuts PB.stat > cutoffs 2> calcuts.log
 
-porechop \
-  -i barcode18.fastq \
-  -o barcode18_trimmed.fasta \
-  --format fasta \
-  --threads 16
+split_fa ../assembly.fasta > assembly.split
 
-#Trimmed Read Statistics
-seqkit stat barcode18_trimmed.fasta
-seqkit stat barcode17_trimmed.fasta
-assembly-stats barcode18_trimmed.fasta
-assembly-stats barcode17_trimmed.fasta
+minimap2 -xasm5 -DP -t 16 assembly.split assembly.split | gzip -c > assembly.split.self.paf.gz
 
-seqkit seq -m 1000 barcode18_trimmed.fasta > barcode18_trimmed_1kb.fasta
+purge_dups -2 -T cutoffs -c PB.base.cov assembly.split.self.paf.gz > dups.bed 2> purge_dups.log
 
-seqkit stat barcode18_trimmed_1kb.fasta
-assembly-stats barcode18_trimmed_1kb.fasta
+get_seqs -e dups.bed ../assembly.fasta
+
+# -----------------------------------------------
+# Step 8: Re-evaluation of new assembly
+# -----------------------------------------------
+quast purged.fa -o Quast/
+
+busco -i purged.fa -m genome -l ../../PacBio_Flye/BUSCO/busco_downloads/lineages/artiodactyla_odb12 -o busco
+
 
 
