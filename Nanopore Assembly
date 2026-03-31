@@ -36,5 +36,8 @@ quast purged.fa -o Quast/
 
 busco -i purged.fa -m genome -l ../../PacBio_Flye/BUSCO/busco_downloads/lineages/artiodactyla_odb12 -o busco
 
-
+# -----------------------------------------------
+# Step 10: Softmasking genome
+# -----------------------------------------------
+RepeatMasker -species metazoa -s -parallel 10 -xsmall -alignments ../purge_dups/purged.fa
 
