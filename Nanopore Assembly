@@ -39,5 +39,7 @@ busco -i purged.fa -m genome -l ../../PacBio_Flye/BUSCO/busco_downloads/lineages
 # -----------------------------------------------
 # Step 10: Softmasking genome
 # -----------------------------------------------
-RepeatMasker -species metazoa -s -parallel 10 -xsmall -alignments ../purge_dups/purged.fa
+RepeatMasker -species metazoa -s -parallel 10 -xsmall -alignments purged.fa
+BuildDatabase -name beluga_nanopore purged.fa
+RepeatModeler -database beluga_nanopore -threads 10 -LTRStruct -ninja_dir /hdd1/jlabarcena/frances/bin/NINJA-0.95-cluster_only/NINJA
 
