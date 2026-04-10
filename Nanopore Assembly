@@ -68,3 +68,13 @@ singularity exec \
 
 makeblastdb -in braker_out_beluga/braker.aa -dbtype prot -out beluga_proteins_db
 
+blastp -query ../../PacBio_Flye/Annotation/PCNA/original_assembly/bowhead_pcna_protein.fasta \
+       -db database/beluga_proteins_db \
+       -out pcna_beluga_blastp.out \
+       -evalue 1e-10 \
+       -outfmt 6 \
+       -max_target_seqs 5 \
+       -num_threads 16 \
+       > blastp.stdout.log 2> blastp.stderr.log
+
+grep "g3885" braker_out_beluga/braker.gtf 
