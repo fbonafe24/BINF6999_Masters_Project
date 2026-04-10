@@ -42,4 +42,29 @@ busco -i purged.fa -m genome -l ../../PacBio_Flye/BUSCO/busco_downloads/lineages
 RepeatMasker -species metazoa -s -parallel 10 -xsmall -alignments purged.fa
 BuildDatabase -name beluga_nanopore purged.fa
 RepeatModeler -database beluga_nanopore -threads 10 -LTRStruct -ninja_dir /hdd1/jlabarcena/frances/bin/NINJA-0.95-cluster_only/NINJA
+RepeatMasker -lib ../RepeatModeler/beluga_nanopore-families.fa -s -parallel 16 -xsmall -alignments purged.fa.masked
+
+# -----------------------------------------------
+# Step 11: Gene annotation
+# -----------------------------------------------
+
+hisat2-build RepeatMasker/purged.fa.masked.masked indexed_genome/purged
+
+hisat2 -x indexed_genome/purged -p 16 -1 /hdd1/jlabarcena/frances/Beluga/PacBio_Flye/Annotation/RNASeq_data/combined_1.fastq.gz \
+-2 /hdd1/jlabarcena/frances/Beluga/PacBio_Flye/Annotation/RNASeq_data/combined_2.fastq.gz | samtools sort -@ 16 -O BAM -o nanopore.bam
+
+
+singularity exec \
+  --bind ~/frances/Beluga:/data \
+  /hdd1/jlabarcena/culicoides/Culicoides4_PacBio/braker/braker3.sif \
+  braker.pl \
+    --species=beluga_nanopore \
+    --bam=/data/Nanopore_Flye/Annotation/nanopore.bam \
+    --genome=/data/Nanopore_Flye/Annotation/RepeatMasker/purged.fa.masked \
+    --prot_seq=/data/PacBio_Flye/Annotation/OrthoDB/Vertebrata.fa \
+    --workingdir=/data/Nanopore_Flye/Annotation/braker_out_beluga \
+    --threads=16 \
+    --softmasking
+
+makeblastdb -in braker_out_beluga/braker.aa -dbtype prot -out beluga_proteins_db
 
